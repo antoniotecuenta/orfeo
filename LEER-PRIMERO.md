@@ -1,12 +1,12 @@
 # Orfeo · No mires atrás
 
-Escribe sin releer. Cada oración que cierras con `.`, `?`, `!` o `…` desaparece de la pantalla y queda sellada hasta que termine el tiempo de la sesión. Enter empieza un párrafo nuevo.
+Escribe sin releer. Cada fragmento que cierras con `.`, `,`, `?`, `!` o `…` (o cada 15 palabras seguidas sin puntuación) desaparece de la pantalla y queda sellado hasta que termine el tiempo de la sesión. Enter empieza un párrafo nuevo.
 
 Web: https://antoniotecuenta.github.io/orfeo/
 
 ## Cómo funciona
 
-- Eliges la duración (5 a 60 minutos, u otra) y escribes. Solo ves la oración que estás escribiendo.
+- Eliges la duración (5 a 60 minutos, u otra) y escribes. Solo ves el fragmento que estás escribiendo. El texto de ayuda aparece solo al empezar.
 - Si terminas antes, el texto sigue sellado hasta la hora en que acababa la sesión.
 - Al acabar el tiempo se abre: puedes leer, ponerle título, copiar, bajar un `.txt` o borrar.
 - Abreviaturas como «Sr.», «Dr.» o «etc.» no cortan la oración.
