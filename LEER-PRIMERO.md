@@ -1,0 +1,22 @@
+# Orfeo · No mires atrás
+
+Escribe sin releer. Cada oración que cierras con `.`, `?`, `!` o `…` desaparece de la pantalla y queda sellada hasta que termine el tiempo de la sesión. Enter empieza un párrafo nuevo.
+
+Web: https://antoniotecuenta.github.io/orfeo/
+
+## Cómo funciona
+
+- Eliges la duración (5 a 60 minutos, u otra) y escribes. Solo ves la oración que estás escribiendo.
+- Si terminas antes, el texto sigue sellado hasta la hora en que acababa la sesión.
+- Al acabar el tiempo se abre: puedes leer, ponerle título, copiar, bajar un `.txt` o borrar.
+- Abreviaturas como «Sr.», «Dr.» o «etc.» no cortan la oración.
+
+## Nube
+
+Usa el mismo proyecto de Supabase que Bestiario, con la tabla `orfeo` (ver `schema.sql`) y el mismo login con GitHub. La dirección `https://antoniotecuenta.github.io/orfeo/` tiene que estar en **Authentication → URL Configuration → Redirect URLs**.
+
+Con dos dispositivos, las sesiones se mezclan una por una: gana la versión modificada más recientemente de cada sesión.
+
+## Para hacer cambios
+
+Edita `index.html` y súbelo de nuevo. Si el celular no ve la versión nueva, sube el número en `sw.js` (`orfeo-v1` → `orfeo-v2`).

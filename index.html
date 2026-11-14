@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Orfeo</title>
+<meta name="description" content="No mires atrás. Escribe sin releer.">
+<meta name="theme-color" content="#0f0d0c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Orfeo">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Literata:ital,opsz,wght@0,7..72,400;1,7..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0f0d0c; --card:#181513; --card2:#1f1b18; --line:#332c27;
+  --paper:#ebe3d3; --dim:#a39888; --faint:#6b6158;
+  --gold:#d9bf86; --ember:#e9573f;
+  --serif:'Cormorant Garamond', Georgia, serif;
+  --text:'Literata', Georgia, serif;
+  --mono:'IBM Plex Mono', ui-monospace, monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--ink);color:var(--paper)}
+body{font-family:var(--text);font-size:17px;line-height:1.5;min-height:100vh;min-height:100dvh;
+  background:radial-gradient(110% 70% at 50% -10%, #221b16 0%, var(--ink) 62%) fixed;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,textarea{font:inherit;color:var(--paper)}
+[hidden]{display:none!important}
+.vista{display:none}.vista.on{display:block}
+.wrap{max-width:600px;margin:0 auto;padding:calc(30px + env(safe-area-inset-top)) 16px 100px}
+.mono{font-family:var(--mono);font-size:12px;letter-spacing:.07em;text-transform:uppercase}
+
+/* ---------- inicio ---------- */
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--serif);font-size:52px;font-weight:600;letter-spacing:.01em;line-height:1}
+h1 i{color:var(--ember);font-style:normal}
+.lema{font-family:var(--serif);font-style:italic;font-size:21px;color:var(--dim);margin:4px 0 22px}
+.total{color:var(--dim);padding-bottom:8px;text-align:right}
+.total b{color:var(--gold);font-weight:500}
+.carta{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 16px;margin-bottom:28px}
+.carta h2{font-family:var(--serif);font-size:26px;font-weight:600;margin-bottom:4px}
+.carta p{color:var(--dim);font-size:15px;margin-bottom:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chip{font-family:var(--mono);font-size:14px;padding:9px 13px;border:1px solid var(--line);border-radius:999px;color:var(--dim);min-width:52px}
+.chip.on{border-color:var(--gold);color:var(--ink);background:var(--gold)}
+.otro{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px;color:var(--dim)}
+.otro input{width:70px;background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:var(--mono);font-size:14px}
+.btn{font-family:var(--mono);font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding:12px 16px;border:1px solid var(--line);border-radius:10px;color:var(--paper)}
+.btn.pri{background:var(--paper);color:var(--ink);border-color:var(--paper);font-weight:500}
+.btn.peligro{color:var(--ember);border-color:#5a2a22}
+.btn:disabled{opacity:.5}
+.fila{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.empezar{width:100%;margin-top:4px;padding:15px}
+.curso{border-color:var(--ember)}
+.curso .mono{color:var(--ember)}
+
+.seccion{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:6px;color:var(--dim)}
+.ses{display:block;width:100%;text-align:left;padding:15px 2px;border-bottom:1px solid var(--line)}
+.ses .t{font-family:var(--serif);font-size:22px;font-weight:600;line-height:1.15;display:flex;gap:8px;align-items:center}
+.ses .m{color:var(--faint);margin-top:5px}
+.ses .p{color:var(--dim);font-size:15px;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ses.sellada .t{color:var(--dim)}
+.ses.sellada .m b{color:var(--gold);font-weight:500}
+.candado{width:15px;height:15px;flex:none;color:var(--gold)}
+.vacio{color:var(--faint);font-style:italic;padding:18px 2px}
+
+.estado{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);
+  background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:8px 14px;color:var(--dim);white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- escritura ---------- */
+#v-escribir{position:fixed;inset:0;background:var(--ink)}
+#v-escribir.on{display:flex;flex-direction:column}
+.barra{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 18px 10px;max-width:760px;width:100%;margin:0 auto}
+.reloj{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--gold);letter-spacing:.04em}
+.reloj.fin{color:var(--ember)}
+.cuenta{color:var(--faint)}
+.salir{color:var(--faint);padding:6px 0}
+.progreso{height:2px;background:var(--line);max-width:760px;width:calc(100% - 36px);margin:0 auto}
+.progreso div{height:100%;background:var(--gold);width:0;transition:width .3s linear}
+.lienzo{flex:1;display:flex;flex-direction:column;max-width:760px;width:100%;margin:0 auto;padding:0 18px;min-height:0}
+.huella{display:flex;flex-wrap:wrap;align-content:flex-end;gap:5px;min-height:24px;max-height:30vh;overflow:hidden;padding:22px 0 18px}
+.huella span{width:6px;height:6px;border-radius:50%;background:var(--faint);opacity:.55}
+.huella span.nueva{animation:caer .6s ease}
+.huella i{flex-basis:100%;height:4px}
+@keyframes caer{from{background:var(--gold);opacity:1;transform:scale(1.8)}to{}}
+.zona{position:relative}
+#txt,.fantasma{font-family:var(--text);font-size:clamp(21px,4.6vw,27px);line-height:1.5;padding:0;letter-spacing:.005em}
+#txt{width:100%;min-height:9em;background:transparent;border:0;outline:0;resize:none;caret-color:var(--ember);display:block}
+#txt::placeholder{color:var(--faint);font-style:italic}
+.fantasma{position:absolute;left:0;right:0;top:0;color:var(--paper);pointer-events:none;animation:irse 1.15s cubic-bezier(.3,.1,.3,1) forwards;white-space:pre-wrap;word-wrap:break-word}
+@keyframes irse{0%{opacity:.95;filter:blur(0);transform:translateY(0)}100%{opacity:0;filter:blur(7px);transform:translateY(-46px)}}
+@media (prefers-reduced-motion:reduce){.fantasma{animation:irse2 .5s forwards}@keyframes irse2{to{opacity:0}}.huella span.nueva{animation:none}}
+.aviso{font-family:var(--serif);font-style:italic;font-size:19px;color:var(--ember);min-height:28px;opacity:0;transition:opacity .4s}
+.aviso.on{opacity:1}
+.pista{color:var(--faint);padding:10px 0 calc(16px + env(safe-area-inset-bottom))}
+
+/* ---------- lectura ---------- */
+.volver{color:var(--dim);margin-bottom:22px;display:inline-block;padding:6px 0}
+#l-titulo{width:100%;background:transparent;border:0;border-bottom:1px solid transparent;outline:0;font-family:var(--serif);font-size:38px;font-weight:600;line-height:1.1;padding:2px 0}
+#l-titulo:focus{border-bottom-color:var(--line)}
+.lmeta{color:var(--faint);margin:8px 0 26px}
+.texto p{font-size:19px;line-height:1.7;margin-bottom:1.1em;text-wrap:pretty}
+.acciones{display:flex;flex-wrap:wrap;gap:10px;margin-top:34px;padding-top:20px;border-top:1px solid var(--line)}
+
+/* ---------- capas ---------- */
+.capa{position:fixed;inset:0;background:rgba(8,7,6,.78);display:none;align-items:flex-end;justify-content:center;z-index:20;padding:16px}
+.capa.on{display:flex}
+@media (min-width:640px){.capa{align-items:center}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 18px calc(18px + env(safe-area-inset-bottom));width:100%;max-width:440px}
+.panel h3{font-family:var(--serif);font-size:28px;font-weight:600;line-height:1.1;margin-bottom:8px}
+.panel .sub{color:var(--dim);font-size:15px;margin-bottom:16px}
+.panel .btns{display:flex;gap:10px;flex-wrap:wrap}
+.panel .err{color:var(--ember);font-size:14px;margin-top:10px;min-height:1px}
+.panel label{display:block;margin:20px 0 6px;color:var(--faint)}
+.grande{font-family:var(--mono);font-size:30px;color:var(--gold);margin:6px 0 16px}
+.toast{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top));transform:translate(-50%,-20px);opacity:0;transition:.35s;background:var(--paper);color:var(--ink);padding:10px 16px;border-radius:10px;z-index:30;font-size:15px;max-width:calc(100% - 32px);pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<!-- ===== Inicio ===== -->
+<section id="v-inicio" class="vista on">
+  <div class="wrap">
+    <header>
+      <h1>Orfeo<i>.</i></h1>
+      <div class="total mono" id="total"></div>
+    </header>
+    <p class="lema">No mires atrás.</p>
+
+    <div class="carta" id="nueva">
+      <h2>Nueva sesión</h2>
+      <p>Escribe sin parar. Cada oración que cierras con un punto se va y no puedes volver a leerla hasta que acabe el tiempo.</p>
+      <div class="chips" id="chips"></div>
+      <div class="fila" style="justify-content:space-between;margin-bottom:16px">
+        <label class="otro">Otro <input id="min-otro" type="number" inputmode="numeric" min="1" max="240" placeholder="min"> min</label>
+      </div>
+      <button class="btn pri empezar" id="empezar">Empezar · 15 min</button>
+    </div>
+
+    <div class="carta curso" id="encurso" hidden>
+      <div class="mono" id="curso-t">Sesión en curso</div>
+      <h2 style="margin-top:6px">Todavía estás escribiendo</h2>
+      <p>No has terminado. Vuelve antes de que se acabe el tiempo.</p>
+      <button class="btn pri empezar" id="retomar">Volver a escribir</button>
+    </div>
+
+    <div class="seccion"><span class="mono">Tus sesiones</span><span class="mono" id="cuantas"></span></div>
+    <div id="lista"></div>
+  </div>
+  <button class="estado mono" id="estado">Guardado en este dispositivo</button>
+</section>
+
+<!-- ===== Escritura ===== -->
+<section id="v-escribir" class="vista">
+  <div class="barra">
+    <div class="reloj" id="reloj">15:00</div>
+    <div class="cuenta mono" id="cuenta">0 palabras</div>
+    <button class="salir mono" id="terminar">Terminar</button>
+  </div>
+  <div class="progreso"><div id="prog"></div></div>
+  <div class="lienzo">
+    <div class="huella" id="huella" aria-hidden="true"></div>
+    <div class="aviso" id="aviso">No mires atrás.</div>
+    <div class="zona" id="zona">
+      <textarea id="txt" rows="5" autocomplete="off" spellcheck="true" autocapitalize="sentences" placeholder="Empieza por cualquier parte…" aria-label="Oración que estás escribiendo"></textarea>
+    </div>
+    <div style="flex:1"></div>
+    <div class="pista mono">Punto, ? o ! cierran la oración · Enter: nuevo párrafo</div>
+  </div>
+</section>
+
+<!-- ===== Lectura ===== -->
+<section id="v-leer" class="vista">
+  <div class="wrap">
+    <button class="volver mono" id="volver">← Sesiones</button>
+    <input id="l-titulo" aria-label="Título" maxlength="120">
+    <div class="lmeta mono" id="l-meta"></div>
+    <div class="texto" id="l-texto"></div>
+    <div class="acciones">
+      <button class="btn" id="l-copiar">Copiar</button>
+      <button class="btn" id="l-bajar">Descargar .txt</button>
+      <button class="btn peligro" id="l-borrar">Borrar</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Capas ===== -->
+<div class="capa" id="capa-msg"><div class="panel" id="msg"></div></div>
+<div class="capa" id="capa-cuenta"><div class="panel">
+  <h3>Tu cuenta</h3>
+  <div id="cuenta-cuerpo"></div>
+  <label class="mono">Respaldo</label>
+  <p class="sub">Baja todas tus sesiones (también las selladas) en un archivo.</p>
+  <div class="btns"><button type="button" class="btn" data-cu="exportar">Exportar .json</button><button type="button" class="btn" id="cu-cerrar">Cerrar</button></div>
+  <div class="err" id="cu-error"></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="supabase.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const KEY='orfeo-v1', DUR=[5,10,15,20,30,45,60];
+let S={sesiones:[],actualizado:0,dur:15};
+const nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const contar=t=>(String(t).match(/[\p{L}\p{N}][\p{L}\p{N}'’\-]*/gu)||[]).length;
+const nf=n=>n.toLocaleString('es-EC');
+const vivas=()=>S.sesiones.filter(s=>!s.borrada);
+const activa=()=>vivas().find(s=>!s.cerrada);
+const sellada=s=>!s.cerrada||Date.now()<s.fin;
+const CANDADO='<svg class="candado" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
+function fmtT(ms){ms=Math.max(0,ms);const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')}
+function fmtHora(t){return new Date(t).toLocaleTimeString('es-EC',{hour:'numeric',minute:'2-digit'})}
+function fmtDia(t){const d=new Date(t),h=new Date();const ay=new Date(h);ay.setDate(h.getDate()-1);
+  if(d.toDateString()===h.toDateString())return 'Hoy';if(d.toDateString()===ay.toDateString())return 'Ayer';
+  return d.toLocaleDateString('es-EC',{weekday:'long',day:'numeric',month:'long'}).replace(/^./,c=>c.toUpperCase())}
+const tituloDe=s=>s.titulo||(fmtDia(s.inicio)+', '+fmtHora(s.inicio));
+function parrafos(s){const out=[];for(const f of s.frag||[]){if(f.p||!out.length)out.push([]);out[out.length-1].push(f.t)}return out.map(p=>p.join(' '))}
+const plano=s=>parrafos(s).join('\n\n');
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}
+function mostrar(v){for(const x of document.querySelectorAll('.vista'))x.classList.toggle('on',x.id==='v-'+v);vista=v;window.scrollTo(0,0)}
+let vista='inicio';
+
+/* ventana de mensaje: devuelve el data-r del botón tocado */
+function mensaje(html,botones){
+  return new Promise(res=>{
+    $('msg').innerHTML=html+`<div class="btns" style="margin-top:6px">${botones.map(b=>`<button type="button" class="btn ${b[2]||''}" data-r="${b[0]}">${b[1]}</button>`).join('')}</div>`;
+    $('capa-msg').classList.add('on');
+    $('msg').onclick=e=>{const b=e.target.closest('[data-r]');if(!b)return;$('capa-msg').classList.remove('on');$('msg').onclick=null;res(b.dataset.r)};
+  });
+}
+$('capa-msg').addEventListener('click',e=>{if(e.target.id==='capa-msg'){const b=$('msg').querySelector('[data-r="no"],[data-r="ok"]');if(b)b.click()}});
+
+/* ---------- inicio ---------- */
+let durSel=15;
+function pintarChips(){
+  $('chips').innerHTML=DUR.map(m=>`<button type="button" class="chip ${m===durSel&&!$('min-otro').value?'on':''}" data-m="${m}">${m}</button>`).join('');
+  const m=minutos();$('empezar').textContent='Empezar · '+(m?m+' min':'elige el tiempo');$('empezar').disabled=!m;
+}
+function minutos(){const o=parseInt($('min-otro').value,10);if($('min-otro').value)return o>=1&&o<=240?o:0;return durSel}
+$('chips').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;durSel=+b.dataset.m;$('min-otro').value='';pintarChips()};
+$('min-otro').oninput=pintarChips;
+
+function renderInicio(){
+  const a=activa();
+  $('nueva').hidden=!!a;$('encurso').hidden=!a;
+  if(a)$('curso-t').textContent='Sesión en curso · quedan '+fmtT(a.fin-Date.now());
+  const vs=vivas();
+  const tot=vs.reduce((n,s)=>n+(s.palabras||0),0);
+  $('total').innerHTML=tot?`<b>${nf(tot)}</b> palabras<br>sin mirar atrás`:'';
+  $('cuantas').textContent=vs.length?vs.length:'';
+  if(!vs.length){$('lista').innerHTML='<p class="vacio">Aún no hay nada. Tu primera sesión aparecerá aquí, sellada hasta que termine su tiempo.</p>';return}
+  $('lista').innerHTML=vs.map(s=>{
+    const n=(s.frag||[]).length,meta=`${nf(s.palabras||0)} palabras · ${n} ${n===1?'oración':'oraciones'}`;
+    if(sellada(s))return `<button class="ses sellada" data-id="${s.id}"><div class="t">${CANDADO}${esc(tituloDe(s))}</div>
+      <div class="m mono">${meta} · ${s.cerrada?'se abre en':'en curso ·'} <b data-cd="${s.fin}">${fmtT(s.fin-Date.now())}</b></div></button>`;
+    const prev=(s.frag||[]).slice(0,3).map(f=>f.t).join(' ');
+    return `<button class="ses" data-id="${s.id}"><div class="t">${esc(tituloDe(s))}</div><div class="m mono">${meta} · ${s.dur} min</div>${prev?`<div class="p">${esc(prev)}</div>`:''}</button>`;
+  }).join('');
+}
+$('lista').onclick=async e=>{
+  const b=e.target.closest('[data-id]');if(!b)return;const s=S.sesiones.find(x=>x.id===b.dataset.id);if(!s)return;
+  if(!s.cerrada)return abrirEscritura(s);
+  if(sellada(s)){
+    const r=await mensaje(`<h3>Todavía no</h3><p class="sub">Esta sesión sigue sellada. Se abre a las ${fmtHora(s.fin)}</p><div class="grande" data-cd="${s.fin}">${fmtT(s.fin-Date.now())}</div>`,
+      [['ok','Esperar','pri'],['borrar','Borrar sin leer','peligro']]);
+    if(r==='borrar')borrar(s);
+    return;
+  }
+  abrirLectura(s);
+};
+$('empezar').onclick=()=>{const m=minutos();if(!m)return;S.dur=m;empezar(m)};
+$('retomar').onclick=()=>{const a=activa();if(a)abrirEscritura(a)};
+
+/* ---------- escritura ---------- */
+let cur=null,reloj=null,pendP=false,lock=null,avisoT=null;
+const txt=$('txt');
+function empezar(min){
+  const now=Date.now();
+  const s={id:nid(),titulo:'',inicio:now,dur:min,fin:now+min*60000,cerrada:false,frag:[],palabras:0,borrador:'',mod:now};
+  S.sesiones.unshift(s);guardar();abrirEscritura(s);
+}
+function abrirEscritura(s){
+  cur=s;pendP=false;
+  if(Date.now()>=s.fin)return terminar();
+  mostrar('escribir');
+  txt.value=s.borrador||'';
+  $('huella').innerHTML='';(s.frag||[]).forEach((f,i)=>marca(f.p&&i>0,false));
+  $('cuenta').textContent=nf(s.palabras||0)+' palabras';
+  clearInterval(reloj);reloj=setInterval(tick,250);tick();
+  pedirLock();
+  setTimeout(()=>{txt.focus();txt.setSelectionRange(txt.value.length,txt.value.length)},60);
+}
+function tick(){
+  if(!cur)return;
+  const r=cur.fin-Date.now();
+  $('reloj').textContent=fmtT(r);$('reloj').classList.toggle('fin',r<60000);
+  $('prog').style.width=Math.min(100,100*(1-r/(cur.dur*60000)))+'%';
+  if(r<=0)terminar();
+}
+const ABR=/(?:^|[\s(¿¡"«])(?:sr|sra|srta|sres|dr|dra|lic|ing|arq|ud|uds|vd|etc|pág|págs|núm|art|cap|vol|ej|aprox|av|st|mr|mrs)\.$/i, INI=/(?:^|\s)[A-ZÁÉÍÓÚÑ]\.$/;
+function cortar(v){ // guarda las oraciones completas y devuelve lo que sobra
+  const re=/[.!?…]+["»”’')\]]*(?=\s)/g;let ini=0,m;
+  while((m=re.exec(v))){
+    const fin=m.index+m[0].length,cand=v.slice(ini,fin);
+    if(m[0]==='.'&&(ABR.test(cand)||INI.test(cand)))continue;
+    comprometer(cand);ini=fin;
+  }
+  return v.slice(ini);
+}
+function comprometer(t){
+  t=String(t).replace(/\s+/g,' ').trim();if(!t||!cur)return;
+  const p=pendP&&cur.frag.length>0;
+  cur.frag.push(p?{t,p:1}:{t});pendP=false;
+  cur.palabras=(cur.palabras||0)+contar(t);cur.mod=Date.now();
+  $('cuenta').textContent=nf(cur.palabras)+' palabras';
+  fantasma(t);marca(p,true);
+}
+function fantasma(t){const g=document.createElement('div');g.className='fantasma';g.textContent=t;$('zona').appendChild(g);g.addEventListener('animationend',()=>g.remove())}
+function marca(p,nueva){const h=$('huella');if(p)h.appendChild(document.createElement('i'));const d=document.createElement('span');if(nueva)d.className='nueva';h.appendChild(d);
+  while(h.children.length>600)h.firstChild.remove()}
+function avisar(t){const a=$('aviso');a.textContent=t;a.classList.add('on');clearTimeout(avisoT);avisoT=setTimeout(()=>a.classList.remove('on'),1600)}
+function procesar(){
+  if(!cur)return;
+  const antes=cur.frag.length;let v=txt.value;
+  if(v.includes('\n')){const ps=v.split('\n');for(let i=0;i<ps.length-1;i++){comprometer(cortar(ps[i]+' '));pendP=true}v=ps[ps.length-1]}
+  const resto=cortar(v).replace(/^\s+/,'');
+  if(resto!==txt.value)txt.value=resto;
+  cur.borrador=resto;
+  if(cur.frag.length!==antes)guardar();else guardarLocal();
+}
+txt.addEventListener('input',e=>{if(e.isComposing)return;procesar()});
+txt.addEventListener('compositionend',procesar);
+txt.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();
+    const antes=cur.frag.length;comprometer(cortar(txt.value+' '));txt.value='';cur.borrador='';
+    if(cur.frag.length){pendP=true;avisar('Nuevo párrafo.')}
+    if(cur.frag.length!==antes)guardar();else guardarLocal();
+  }else if(e.key==='Backspace'&&!txt.value){avisar('No mires atrás.')}
+});
+txt.addEventListener('paste',()=>setTimeout(procesar,0));
+// evita que el teclado o un toque fuera deje la página sin foco
+$('v-escribir').addEventListener('click',e=>{if(!e.target.closest('button'))txt.focus()});
+
+$('terminar').onclick=async()=>{
+  if(!cur)return;
+  const queda=fmtT(cur.fin-Date.now());
+  const r=await mensaje(`<h3>¿Terminar ya?</h3><p class="sub">Puedes dejar de escribir, pero lo escrito sigue sellado hasta que acabe el tiempo (quedan ${queda}).</p>`,
+    [['seguir','Seguir escribiendo','pri'],['salir','Terminar']]);
+  if(r==='salir')terminar();else txt.focus();
+};
+function terminar(){
+  if(!cur)return;
+  const s=cur;
+  comprometer(cortar((txt.value||s.borrador||'')+' '));
+  txt.value='';s.borrador='';s.cerrada=true;s.mod=Date.now();
+  if(!s.frag.length){s.borrada=true}
+  cur=null;clearInterval(reloj);soltarLock();guardar();
+  mostrar('inicio');renderInicio();
+  if(s.borrada)return toast('Sesión vacía: no se guardó nada.');
+  if(sellada(s))toast(`Sellada hasta las ${fmtHora(s.fin)}`);
+  else mensaje(`<h3>Ya puedes mirar atrás</h3><p class="sub">${nf(s.palabras)} palabras en ${s.dur} minutos.</p>`,[['leer','Leer','pri'],['ok','Luego']]).then(r=>{if(r==='leer')abrirLectura(s)});
+}
+async function pedirLock(){try{if('wakeLock' in navigator)lock=await navigator.wakeLock.request('screen')}catch(e){}}
+function soltarLock(){try{lock&&lock.release()}catch(e){}lock=null}
+
+/* ---------- lectura ---------- */
+let leyendo=null;
+function abrirLectura(s){
+  leyendo=s;mostrar('leer');
+  $('l-titulo').value=tituloDe(s);
+  const n=s.frag.length;
+  $('l-meta').textContent=`${fmtDia(s.inicio)} · ${fmtHora(s.inicio)} · ${s.dur} min · ${nf(s.palabras||0)} palabras · ${n} ${n===1?'oración':'oraciones'}`;
+  $('l-texto').innerHTML=parrafos(s).map(p=>`<p>${esc(p)}</p>`).join('');
+}
+$('l-titulo').onchange=()=>{if(!leyendo)return;const t=$('l-titulo').value.trim();leyendo.titulo=t===tituloDe({...leyendo,titulo:''})?'':t;leyendo.mod=Date.now();guardar()};
+$('volver').onclick=()=>{leyendo=null;mostrar('inicio');renderInicio()};
+$('l-copiar').onclick=async()=>{try{await navigator.clipboard.writeText(plano(leyendo));toast('Copiado.')}catch(e){toast('No se pudo copiar.')}};
+function bajar(nombre,contenido,tipo){const u=URL.createObjectURL(new Blob([contenido],{type:tipo})),l=document.createElement('a');l.href=u;l.download=nombre;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
+$('l-bajar').onclick=()=>{const s=leyendo;const f=new Date(s.inicio).toISOString().slice(0,10);bajar(`orfeo-${f}.txt`,tituloDe(s)+'\n\n'+plano(s)+'\n','text/plain;charset=utf-8')};
+$('l-borrar').onclick=async()=>{const r=await mensaje(`<h3>¿Borrar esta sesión?</h3><p class="sub">Se borra en todos tus dispositivos y no se puede recuperar.</p>`,[['no','Cancelar'],['si','Borrar','peligro']]);
+  if(r==='si'){borrar(leyendo);leyendo=null;mostrar('inicio')}};
+function borrar(s){s.borrada=true;s.frag=[];s.borrador='';s.palabras=0;s.titulo='';s.mod=Date.now();guardar();renderInicio()}
+
+/* cuentas regresivas */
+setInterval(()=>{
+  for(const e of document.querySelectorAll('[data-cd]')){const r=+e.dataset.cd-Date.now();e.textContent=fmtT(r);if(r<=0&&vista==='inicio'&&!$('capa-msg').classList.contains('on'))renderInicio()}
+  if(vista==='inicio'){const a=activa();if(a){if(Date.now()>=a.fin){cur=a;terminar()}else $('curso-t').textContent='Sesión en curso · quedan '+fmtT(a.fin-Date.now())}}
+},1000);
+
+/* ---------- guardado: este dispositivo + nube (Supabase) ---------- */
+const CFG=window.ORFEO_CONFIG||{};
+const NUBE=!!(CFG.supabaseUrl&&CFG.supabaseAnonKey&&window.supabase&&!/TU-PROYECTO|PEGA-AQUI/.test(CFG.supabaseUrl+CFG.supabaseAnonKey));
+let sb=null,uid=null,correo=null,ocupado=false,pendiente=false,temporizador=null;
+function estado(t){$('estado').textContent=t}
+function guardarLocal(){S.actualizado=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function guardar(){
+  guardarLocal();
+  if(!uid)return;
+  estado('Guardando…');
+  clearTimeout(temporizador);temporizador=setTimeout(()=>{temporizador=null;sincronizar()},1500);
+}
+function fusionar(a,b){
+  const m=new Map();for(const s of a)m.set(s.id,s);
+  for(const s of b){const x=m.get(s.id);if(!x||(s.mod||0)>(x.mod||0))m.set(s.id,s)}
+  return [...m.values()].sort((x,y)=>y.inicio-x.inicio);
+}
+async function sincronizar(){
+  if(!uid)return;
+  if(ocupado){pendiente=true;return}
+  ocupado=true;pendiente=false;
+  try{
+    const r=await sb.from('orfeo').select('data').eq('user_id',uid).maybeSingle();
+    if(r.error)throw r.error;
+    const remotas=(r.data&&r.data.data&&Array.isArray(r.data.data.sesiones))?r.data.data.sesiones:[];
+    S.sesiones=fusionar(S.sesiones,remotas);
+    if(cur){const i=S.sesiones.findIndex(s=>s.id===cur.id);if(i>=0)S.sesiones[i]=cur}
+    try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+    if(vista==='inicio'&&!$('capa-msg').classList.contains('on'))renderInicio();
+    if(JSON.stringify(S.sesiones)!==JSON.stringify(remotas)){
+      const {error}=await sb.from('orfeo').upsert({user_id:uid,data:S,actualizado:Date.now(),updated_at:new Date().toISOString()});
+      if(error)throw error;
+    }
+    estado('Sincronizado ✓');
+  }catch(e){estado('Sin conexión · guardado en este dispositivo')}
+  ocupado=false;
+  if(pendiente)sincronizar();
+}
+function sesion(s){
+  const antes=uid;
+  uid=s&&s.user?s.user.id:null;correo=s&&s.user?(s.user.email||s.user.user_metadata&&s.user.user_metadata.user_name):null;
+  if(uid&&uid!==antes)sincronizar();
+  if(!uid)estado(NUBE?'Solo en este dispositivo · toca para sincronizar':'Guardado en este dispositivo');
+  if($('capa-cuenta').classList.contains('on'))pintarCuenta();
+}
+async function conectar(){
+  try{const c=localStorage.getItem(KEY);if(c){const x=JSON.parse(c);if(x&&Array.isArray(x.sesiones))S=x}}catch(e){}
+  durSel=DUR.includes(S.dur)?S.dur:15;if(S.dur&&!DUR.includes(S.dur))$('min-otro').value=S.dur;
+  pintarChips();renderInicio();
+  const a=activa();if(a)abrirEscritura(a);
+  if(!NUBE){estado('Guardado en este dispositivo');return}
+  estado('Conectando…');
+  sb=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'orfeo-auth'}});
+  sb.auth.onAuthStateChange((ev,s)=>{sesion(s);if(ev==='SIGNED_IN'&&location.hash.includes('access_token'))history.replaceState(null,'',location.pathname)});
+  try{const {data}=await sb.auth.getSession();sesion(data.session)}catch(e){sesion(null)}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(cur){tick();pedirLock()}sincronizar()}else if(cur){guardarLocal()}});
+window.addEventListener('online',()=>sincronizar());
+window.addEventListener('pagehide',()=>{if(cur)guardarLocal()});
+setInterval(()=>{if(!cur)sincronizar()},60000);
+
+/* ---------- cuenta ---------- */
+function pintarCuenta(){
+  const c=$('cuenta-cuerpo');$('cu-error').textContent='';
+  if(!NUBE)c.innerHTML=`<p class="sub">La sincronización no está configurada (revisa <b>config.js</b>). Todo se guarda en este dispositivo.</p>`;
+  else if(uid)c.innerHTML=`<p class="sub">Sincronizando como <b>${esc(correo||'tu cuenta')}</b>. Entra con GitHub en tus otros dispositivos para ver lo mismo.</p>
+    <div class="btns"><button type="button" class="btn" data-cu="sync">Sincronizar ahora</button><button type="button" class="btn" data-cu="salir">Cerrar sesión</button></div>`;
+  else c.innerHTML=`<p class="sub">Entra para tener tus sesiones en el celular y en la computadora. Usa la misma cuenta que en Bestiario.</p>
+    <div class="btns"><button type="button" class="btn pri" data-cu="github">Entrar con GitHub</button></div>`;
+}
+$('estado').onclick=()=>{pintarCuenta();$('capa-cuenta').classList.add('on')};
+$('cu-cerrar').onclick=()=>$('capa-cuenta').classList.remove('on');
+$('capa-cuenta').addEventListener('click',async e=>{
+  if(e.target.id==='capa-cuenta')return $('capa-cuenta').classList.remove('on');
+  const b=e.target.closest('[data-cu]');if(!b)return;const a=b.dataset.cu,err=$('cu-error');err.textContent='';
+  if(a==='github'){
+    b.disabled=true;b.textContent='Abriendo GitHub…';
+    const {error}=await sb.auth.signInWithOAuth({provider:'github',options:{redirectTo:location.origin+location.pathname}});
+    if(error){b.disabled=false;b.textContent='Entrar con GitHub';err.textContent='No se pudo abrir GitHub: '+error.message}
+  }else if(a==='sync'){estado('Sincronizando…');await sincronizar()}
+  else if(a==='salir'){await sb.auth.signOut();pintarCuenta()}
+  else if(a==='exportar')bajar('orfeo-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(S,null,2),'application/json');
+});
+
+conectar();
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
