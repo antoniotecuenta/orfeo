@@ -143,10 +143,11 @@ h1 i{color:var(--ember);font-style:normal}
     </div>
 
     <div class="carta curso" id="encurso" hidden>
-      <div class="mono" id="curso-t">Sesión en curso</div>
-      <h2 style="margin-top:6px">Todavía estás escribiendo</h2>
-      <p>No has terminado. Vuelve antes de que se acabe el tiempo.</p>
-      <button class="btn pri empezar" id="retomar">Volver a escribir</button>
+      <div class="mono" id="curso-t">Sesión en pausa</div>
+      <h2 style="margin-top:6px" id="curso-h">Te queda tiempo por escribir</h2>
+      <p>El reloj se detuvo cuando saliste. Lo escrito sigue sellado hasta que uses el tiempo que te falta.</p>
+      <button class="btn pri empezar" id="retomar">Continuar</button>
+      <button class="btn empezar" id="cerrar-ses" style="margin-top:10px">Darla por terminada</button>
     </div>
 
     <div class="seccion"><span class="mono">Tus sesiones</span><span class="mono" id="cuantas"></span></div>
@@ -160,7 +161,7 @@ h1 i{color:var(--ember);font-style:normal}
   <div class="barra">
     <div class="reloj" id="reloj">15:00</div>
     <div class="cuenta mono" id="cuenta">0 palabras</div>
-    <button class="salir mono" id="terminar">Terminar</button>
+    <button class="salir mono" id="terminar">Salir</button>
   </div>
   <div class="progreso"><div id="prog"></div></div>
   <div class="lienzo">
@@ -213,6 +214,10 @@ const contar=t=>(String(t).match(/[\p{L}\p{N}][\p{L}\p{N}'’\-]*/gu)||[]).lengt
 const nf=n=>n.toLocaleString('es-EC');
 const vivas=()=>S.sesiones.filter(s=>!s.borrada);
 const activa=()=>vivas().find(s=>!s.cerrada);
+const queda=s=>s.pausa!=null?s.pausa:s.fin-Date.now();
+const vencida=s=>!s.cerrada&&s.pausa==null&&Date.now()>=s.fin;
+function pausar(s){if(s.pausa==null){s.pausa=Math.max(0,s.fin-Date.now());s.mod=Date.now()}}
+function reanudar(s){if(s.pausa!=null){s.fin=Date.now()+s.pausa;delete s.pausa;s.mod=Date.now()}}
 const sellada=s=>!s.cerrada||Date.now()<s.fin;
 const CANDADO='<svg class="candado" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
 function fmtT(ms){ms=Math.max(0,ms);const s=Math.ceil(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(x).padStart(2,'0')}
@@ -250,7 +255,7 @@ $('min-otro').oninput=pintarChips;
 function renderInicio(){
   const a=activa();
   $('nueva').hidden=!!a;$('encurso').hidden=!a;
-  if(a)$('curso-t').textContent='Sesión en curso · quedan '+fmtT(a.fin-Date.now());
+  if(a)pintarCurso(a);
   const vs=vivas();
   const tot=vs.reduce((n,s)=>n+(s.palabras||0),0);
   $('total').innerHTML=tot?`<b>${nf(tot)}</b> palabras<br>sin mirar atrás`:'';
@@ -259,7 +264,7 @@ function renderInicio(){
   $('lista').innerHTML=vs.map(s=>{
     const n=(s.frag||[]).length,meta=`${nf(s.palabras||0)} palabras · ${n} ${n===1?'oración':'oraciones'}`;
     if(sellada(s))return `<button class="ses sellada" data-id="${s.id}"><div class="t">${CANDADO}${esc(tituloDe(s))}</div>
-      <div class="m mono">${meta} · ${s.cerrada?'se abre en':'en curso ·'} <b data-cd="${s.fin}">${fmtT(s.fin-Date.now())}</b></div></button>`;
+      <div class="m mono">${meta} · ${s.cerrada?`se abre en <b data-cd="${s.fin}">${fmtT(s.fin-Date.now())}</b>`:`en pausa · quedan <b>${fmtT(queda(s))}</b>`}</div></button>`;
     const prev=(s.frag||[]).slice(0,3).map(f=>f.t).join(' ');
     return `<button class="ses" data-id="${s.id}"><div class="t">${esc(tituloDe(s))}</div><div class="m mono">${meta} · ${s.dur} min</div>${prev?`<div class="p">${esc(prev)}</div>`:''}</button>`;
   }).join('');
@@ -277,6 +282,10 @@ $('lista').onclick=async e=>{
 };
 $('empezar').onclick=()=>{const m=minutos();if(!m)return;S.dur=m;empezar(m)};
 $('retomar').onclick=()=>{const a=activa();if(a)abrirEscritura(a)};
+function pintarCurso(a){const q=fmtT(queda(a));$('curso-t').textContent='Sesión en pausa · '+nf(a.palabras||0)+' palabras';$('curso-h').textContent='Te quedan '+q+' por escribir'}
+$('cerrar-ses').onclick=async()=>{const a=activa();if(!a)return;
+  const r=await mensaje(`<h3>¿Darla por terminada?</h3><p class="sub">Ya no podrás seguir escribiendo en ella. Lo escrito queda sellado por el tiempo que faltaba (${fmtT(queda(a))}).</p>`,[['no','Cancelar'],['si','Terminar','pri']]);
+  if(r==='si'){reanudar(a);cur=a;terminar()}};
 
 /* ---------- escritura ---------- */
 let cur=null,reloj=null,pendP=false,lock=null,avisoT=null;
@@ -288,6 +297,7 @@ function empezar(min){
 }
 function abrirEscritura(s){
   cur=s;pendP=false;
+  reanudar(s);guardar();
   if(Date.now()>=s.fin)return terminar();
   mostrar('escribir');
   txt.value=s.borrador||'';inicioVisible(!(s.frag||[]).length);
@@ -298,7 +308,7 @@ function abrirEscritura(s){
   setTimeout(()=>{txt.focus();txt.setSelectionRange(txt.value.length,txt.value.length)},60);
 }
 function tick(){
-  if(!cur)return;
+  if(!cur||cur.pausa!=null)return;
   const r=cur.fin-Date.now();
   $('reloj').textContent=fmtT(r);$('reloj').classList.toggle('fin',r<60000);
   $('prog').style.width=Math.min(100,100*(1-r/(cur.dur*60000)))+'%';
@@ -354,13 +364,15 @@ txt.addEventListener('paste',()=>setTimeout(procesar,0));
 // evita que el teclado o un toque fuera deje la página sin foco
 $('v-escribir').addEventListener('click',e=>{if(!e.target.closest('button'))txt.focus()});
 
-$('terminar').onclick=async()=>{
+$('terminar').onclick=()=>salir();
+function salir(){ // pausa: el reloj se detiene y puedes volver a usar el tiempo que falta
   if(!cur)return;
-  const queda=fmtT(cur.fin-Date.now());
-  const r=await mensaje(`<h3>¿Terminar ya?</h3><p class="sub">Puedes dejar de escribir, pero lo escrito sigue sellado hasta que acabe el tiempo (quedan ${queda}).</p>`,
-    [['seguir','Seguir escribiendo','pri'],['salir','Terminar']]);
-  if(r==='salir')terminar();else txt.focus();
-};
+  const s=cur;
+  comprometer(cortar((txt.value||'')+' '));txt.value='';s.borrador='';
+  pausar(s);cur=null;clearInterval(reloj);soltarLock();guardar();
+  mostrar('inicio');renderInicio();
+  toast(`En pausa · te quedan ${fmtT(s.pausa)}`);
+}
 function terminar(){
   if(!cur)return;
   const s=cur;
@@ -397,7 +409,7 @@ function borrar(s){s.borrada=true;s.frag=[];s.borrador='';s.palabras=0;s.titulo=
 /* cuentas regresivas */
 setInterval(()=>{
   for(const e of document.querySelectorAll('[data-cd]')){const r=+e.dataset.cd-Date.now();e.textContent=fmtT(r);if(r<=0&&vista==='inicio'&&!$('capa-msg').classList.contains('on'))renderInicio()}
-  if(vista==='inicio'){const a=activa();if(a){if(Date.now()>=a.fin){cur=a;terminar()}else $('curso-t').textContent='Sesión en curso · quedan '+fmtT(a.fin-Date.now())}}
+  if(vista==='inicio'){const a=activa();if(a){if(vencida(a)){cur=a;terminar()}else pintarCurso(a)}}
 },1000);
 
 /* ---------- guardado: este dispositivo + nube (Supabase) ---------- */
@@ -449,16 +461,17 @@ async function conectar(){
   try{const c=localStorage.getItem(KEY);if(c){const x=JSON.parse(c);if(x&&Array.isArray(x.sesiones))S=x}}catch(e){}
   durSel=DUR.includes(S.dur)?S.dur:15;if(S.dur&&!DUR.includes(S.dur))$('min-otro').value=S.dur;
   pintarChips();renderInicio();
-  const a=activa();if(a)abrirEscritura(a);
+  const a=activa();if(a&&a.pausa==null)abrirEscritura(a);
   if(!NUBE){estado('Guardado en este dispositivo');return}
   estado('Conectando…');
   sb=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'orfeo-auth'}});
   sb.auth.onAuthStateChange((ev,s)=>{sesion(s);if(ev==='SIGNED_IN'&&location.hash.includes('access_token'))history.replaceState(null,'',location.pathname)});
   try{const {data}=await sb.auth.getSession();sesion(data.session)}catch(e){sesion(null)}
 }
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(cur){tick();pedirLock()}sincronizar()}else if(cur){guardarLocal()}});
+// salir de la app pausa el reloj; al volver sigue donde iba
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(cur){reanudar(cur);guardarLocal();tick();pedirLock()}sincronizar()}else if(cur){cur.borrador=txt.value;pausar(cur);guardarLocal();if(uid)sincronizar()}});
 window.addEventListener('online',()=>sincronizar());
-window.addEventListener('pagehide',()=>{if(cur)guardarLocal()});
+window.addEventListener('pagehide',()=>{if(cur){cur.borrador=txt.value;pausar(cur);guardarLocal()}});
 setInterval(()=>{if(!cur)sincronizar()},60000);
 
 /* ---------- cuenta ---------- */
