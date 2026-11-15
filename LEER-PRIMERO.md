@@ -7,8 +7,8 @@ Web: https://antoniotecuenta.github.io/orfeo/
 ## Cómo funciona
 
 - Eliges la duración (5 a 60 minutos, u otra) y escribes. Solo ves el fragmento que estás escribiendo. El texto de ayuda aparece solo al empezar.
-- Si sales (botón «Salir» o cierras la app), el reloj se detiene y la sesión queda en pausa: puedes continuar después con el tiempo que te faltaba. Lo escrito sigue sellado mientras tanto.
-- «Darla por terminada» cierra la sesión; lo escrito queda sellado solo por el tiempo que faltaba.
+- Si sales (botón «Salir» o cierras la app), el reloj sigue corriendo y puedes volver a entrar a escribir mientras quede tiempo. Al acabar el reloj, la sesión se abre.
+- «Darla por terminada» cierra la sesión antes; lo escrito sigue sellado hasta que acabe el reloj.
 - Al acabar el tiempo se abre: puedes leer, ponerle título, copiar, bajar un `.txt` o borrar.
 - Abreviaturas como «Sr.», «Dr.» o «etc.» no cortan la oración.
 

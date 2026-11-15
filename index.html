@@ -143,9 +143,9 @@ h1 i{color:var(--ember);font-style:normal}
     </div>
 
     <div class="carta curso" id="encurso" hidden>
-      <div class="mono" id="curso-t">Sesión en pausa</div>
+      <div class="mono" id="curso-t">Sesión en curso</div>
       <h2 style="margin-top:6px" id="curso-h">Te queda tiempo por escribir</h2>
-      <p>El reloj se detuvo cuando saliste. Lo escrito sigue sellado hasta que uses el tiempo que te falta.</p>
+      <p>El reloj sigue corriendo. Puedes volver a escribir hasta que se acabe.</p>
       <button class="btn pri empezar" id="retomar">Continuar</button>
       <button class="btn empezar" id="cerrar-ses" style="margin-top:10px">Darla por terminada</button>
     </div>
@@ -216,7 +216,6 @@ const vivas=()=>S.sesiones.filter(s=>!s.borrada);
 const activa=()=>vivas().find(s=>!s.cerrada);
 const queda=s=>s.pausa!=null?s.pausa:s.fin-Date.now();
 const vencida=s=>!s.cerrada&&s.pausa==null&&Date.now()>=s.fin;
-function pausar(s){if(s.pausa==null){s.pausa=Math.max(0,s.fin-Date.now());s.mod=Date.now()}}
 function reanudar(s){if(s.pausa!=null){s.fin=Date.now()+s.pausa;delete s.pausa;s.mod=Date.now()}}
 const sellada=s=>!s.cerrada||Date.now()<s.fin;
 const CANDADO='<svg class="candado" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
@@ -264,7 +263,7 @@ function renderInicio(){
   $('lista').innerHTML=vs.map(s=>{
     const n=(s.frag||[]).length,meta=`${nf(s.palabras||0)} palabras · ${n} ${n===1?'oración':'oraciones'}`;
     if(sellada(s))return `<button class="ses sellada" data-id="${s.id}"><div class="t">${CANDADO}${esc(tituloDe(s))}</div>
-      <div class="m mono">${meta} · ${s.cerrada?`se abre en <b data-cd="${s.fin}">${fmtT(s.fin-Date.now())}</b>`:`en pausa · quedan <b>${fmtT(queda(s))}</b>`}</div></button>`;
+      <div class="m mono">${meta} · ${s.cerrada?`se abre en <b data-cd="${s.fin}">${fmtT(s.fin-Date.now())}</b>`:`en curso · quedan <b data-cd="${s.fin}">${fmtT(queda(s))}</b>`}</div></button>`;
     const prev=(s.frag||[]).slice(0,3).map(f=>f.t).join(' ');
     return `<button class="ses" data-id="${s.id}"><div class="t">${esc(tituloDe(s))}</div><div class="m mono">${meta} · ${s.dur} min</div>${prev?`<div class="p">${esc(prev)}</div>`:''}</button>`;
   }).join('');
@@ -282,9 +281,9 @@ $('lista').onclick=async e=>{
 };
 $('empezar').onclick=()=>{const m=minutos();if(!m)return;S.dur=m;empezar(m)};
 $('retomar').onclick=()=>{const a=activa();if(a)abrirEscritura(a)};
-function pintarCurso(a){const q=fmtT(queda(a));$('curso-t').textContent='Sesión en pausa · '+nf(a.palabras||0)+' palabras';$('curso-h').textContent='Te quedan '+q+' por escribir'}
+function pintarCurso(a){const q=fmtT(queda(a));$('curso-t').textContent='Sesión en curso · '+nf(a.palabras||0)+' palabras';$('curso-h').textContent='Te quedan '+q+' por escribir'}
 $('cerrar-ses').onclick=async()=>{const a=activa();if(!a)return;
-  const r=await mensaje(`<h3>¿Darla por terminada?</h3><p class="sub">Ya no podrás seguir escribiendo en ella. Lo escrito queda sellado por el tiempo que faltaba (${fmtT(queda(a))}).</p>`,[['no','Cancelar'],['si','Terminar','pri']]);
+  const r=await mensaje(`<h3>¿Darla por terminada?</h3><p class="sub">Ya no podrás volver a escribir en ella. Lo escrito sigue sellado hasta que acabe el reloj (${fmtT(queda(a))}).</p>`,[['no','Cancelar'],['si','Terminar','pri']]);
   if(r==='si'){reanudar(a);cur=a;terminar()}};
 
 /* ---------- escritura ---------- */
@@ -365,13 +364,13 @@ txt.addEventListener('paste',()=>setTimeout(procesar,0));
 $('v-escribir').addEventListener('click',e=>{if(!e.target.closest('button'))txt.focus()});
 
 $('terminar').onclick=()=>salir();
-function salir(){ // pausa: el reloj se detiene y puedes volver a usar el tiempo que falta
+function salir(){ // el reloj sigue corriendo; puedes volver a entrar mientras quede tiempo
   if(!cur)return;
   const s=cur;
   comprometer(cortar((txt.value||'')+' '));txt.value='';s.borrador='';
-  pausar(s);cur=null;clearInterval(reloj);soltarLock();guardar();
+  cur=null;clearInterval(reloj);soltarLock();guardar();
   mostrar('inicio');renderInicio();
-  toast(`En pausa · te quedan ${fmtT(s.pausa)}`);
+  toast(`Puedes volver mientras corra el reloj · quedan ${fmtT(queda(s))}`);
 }
 function terminar(){
   if(!cur)return;
@@ -461,17 +460,17 @@ async function conectar(){
   try{const c=localStorage.getItem(KEY);if(c){const x=JSON.parse(c);if(x&&Array.isArray(x.sesiones))S=x}}catch(e){}
   durSel=DUR.includes(S.dur)?S.dur:15;if(S.dur&&!DUR.includes(S.dur))$('min-otro').value=S.dur;
   pintarChips();renderInicio();
-  const a=activa();if(a&&a.pausa==null)abrirEscritura(a);
+  for(const x of vivas())if(!x.cerrada&&x.pausa!=null)reanudar(x); // sesiones de la versión con pausa
   if(!NUBE){estado('Guardado en este dispositivo');return}
   estado('Conectando…');
   sb=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'orfeo-auth'}});
   sb.auth.onAuthStateChange((ev,s)=>{sesion(s);if(ev==='SIGNED_IN'&&location.hash.includes('access_token'))history.replaceState(null,'',location.pathname)});
   try{const {data}=await sb.auth.getSession();sesion(data.session)}catch(e){sesion(null)}
 }
-// salir de la app pausa el reloj; al volver sigue donde iba
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(cur){reanudar(cur);guardarLocal();tick();pedirLock()}sincronizar()}else if(cur){cur.borrador=txt.value;pausar(cur);guardarLocal();if(uid)sincronizar()}});
+// salir de la app no detiene el reloj; al volver sigue escribiendo si queda tiempo
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(cur){tick();pedirLock()}sincronizar()}else if(cur){cur.borrador=txt.value;guardarLocal();if(uid)sincronizar()}});
 window.addEventListener('online',()=>sincronizar());
-window.addEventListener('pagehide',()=>{if(cur){cur.borrador=txt.value;pausar(cur);guardarLocal()}});
+window.addEventListener('pagehide',()=>{if(cur){cur.borrador=txt.value;guardarLocal()}});
 setInterval(()=>{if(!cur)sincronizar()},60000);
 
 /* ---------- cuenta ---------- */
