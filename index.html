@@ -47,6 +47,16 @@ h1 i{color:var(--ember);font-style:normal}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
 .chip{font-family:var(--mono);font-size:14px;padding:9px 13px;border:1px solid var(--line);border-radius:999px;color:var(--dim);min-width:52px}
 .chip.on{border-color:var(--gold);color:var(--ink);background:var(--gold)}
+.modos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.modo{text-align:left;padding:11px 12px;border:1px solid var(--line);border-radius:10px;color:var(--dim)}
+.modo b{display:block;font-family:var(--serif);font-size:19px;font-weight:600;color:var(--paper);line-height:1.1;margin-bottom:3px}
+.modo span{font-size:13px;line-height:1.35;display:block}
+.modo.on{border-color:var(--gold);background:var(--card2)}
+.modo.on b{color:var(--gold)}
+.hilo{font-family:var(--text);font-size:clamp(16px,3.7vw,20px);line-height:1.55;color:var(--dim);margin-bottom:16px}
+.hilo span{transition:opacity .5s}
+.hilo span.nueva{animation:entra .6s ease}
+@keyframes entra{from{opacity:0}}
 .otro{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px;color:var(--dim)}
 .otro input{width:70px;background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:var(--mono);font-size:14px}
 .btn{font-family:var(--mono);font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding:12px 16px;border:1px solid var(--line);border-radius:10px;color:var(--paper)}
@@ -135,6 +145,10 @@ h1 i{color:var(--ember);font-style:normal}
     <div class="carta" id="nueva">
       <h2>Nueva sesión</h2>
       <p>Escribe sin parar. Cada cierta cantidad de palabras, lo que escribes desaparece, pero se guarda para que lo revises al final de la sesión. Escribe, no mires atrás.</p>
+      <div class="modos" id="modos">
+        <button type="button" class="modo" data-h="0"><b>A ciegas</b><span>Todo desaparece al instante.</span></button>
+        <button type="button" class="modo" data-h="3"><b>Con hilo</b><span>Ves tus últimas tres frases.</span></button>
+      </div>
       <div class="chips" id="chips"></div>
       <div class="fila" style="justify-content:space-between;margin-bottom:16px">
         <label class="otro">Otro <input id="min-otro" type="number" inputmode="numeric" min="1" max="240" placeholder="min"> min</label>
@@ -167,6 +181,7 @@ h1 i{color:var(--ember);font-style:normal}
   <div class="lienzo">
     <div class="huella" id="huella" aria-hidden="true"></div>
     <div class="aviso" id="aviso">No mires atrás.</div>
+    <div class="hilo" id="hilo" aria-live="off"></div>
     <div class="zona" id="zona">
       <textarea id="txt" rows="5" autocomplete="off" spellcheck="true" autocapitalize="sentences" placeholder="Empieza por cualquier parte…" aria-label="Oración que estás escribiendo"></textarea>
     </div>
@@ -250,6 +265,8 @@ function pintarChips(){
 function minutos(){const o=parseInt($('min-otro').value,10);if($('min-otro').value)return o>=1&&o<=240?o:0;return durSel}
 $('chips').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;durSel=+b.dataset.m;$('min-otro').value='';pintarChips()};
 $('min-otro').oninput=pintarChips;
+function pintarModos(){for(const b of document.querySelectorAll('.modo'))b.classList.toggle('on',+b.dataset.h===(S.hilo||0))}
+$('modos').onclick=e=>{const b=e.target.closest('[data-h]');if(!b)return;S.hilo=+b.dataset.h;pintarModos();guardarLocal()};
 
 function renderInicio(){
   const a=activa();
@@ -261,7 +278,7 @@ function renderInicio(){
   $('cuantas').textContent=vs.length?vs.length:'';
   if(!vs.length){$('lista').innerHTML='<p class="vacio">Aún no hay nada. Tu primera sesión aparecerá aquí, sellada hasta que termine su tiempo.</p>';return}
   $('lista').innerHTML=vs.map(s=>{
-    const n=(s.frag||[]).length,meta=`${nf(s.palabras||0)} palabras · ${n} ${n===1?'oración':'oraciones'}`;
+    const n=(s.frag||[]).length,meta=`${s.hilo?'con hilo · ':''}${nf(s.palabras||0)} palabras · ${n} ${n===1?'frase':'frases'}`;
     if(sellada(s))return `<button class="ses sellada" data-id="${s.id}"><div class="t">${CANDADO}${esc(tituloDe(s))}</div>
       <div class="m mono">${meta} · ${s.cerrada?`se abre en <b data-cd="${s.fin}">${fmtT(s.fin-Date.now())}</b>`:`en curso · quedan <b data-cd="${s.fin}">${fmtT(queda(s))}</b>`}</div></button>`;
     const prev=(s.frag||[]).slice(0,3).map(f=>f.t).join(' ');
@@ -291,7 +308,7 @@ let cur=null,reloj=null,pendP=false,lock=null,avisoT=null;
 const txt=$('txt');
 function empezar(min){
   const now=Date.now();
-  const s={id:nid(),titulo:'',inicio:now,dur:min,fin:now+min*60000,cerrada:false,frag:[],palabras:0,borrador:'',mod:now};
+  const s={id:nid(),titulo:'',inicio:now,dur:min,fin:now+min*60000,cerrada:false,frag:[],palabras:0,borrador:'',hilo:S.hilo||0,mod:now};
   S.sesiones.unshift(s);guardar();abrirEscritura(s);
 }
 function abrirEscritura(s){
@@ -300,7 +317,7 @@ function abrirEscritura(s){
   if(Date.now()>=s.fin)return terminar();
   mostrar('escribir');
   txt.value=s.borrador||'';inicioVisible(!(s.frag||[]).length);
-  $('huella').innerHTML='';(s.frag||[]).forEach((f,i)=>marca(f.p&&i>0,false));
+  $('huella').innerHTML='';(s.frag||[]).forEach((f,i)=>marca(f.p&&i>0,false));pintarHilo(false);
   $('cuenta').textContent=nf(s.palabras||0)+' palabras';
   clearInterval(reloj);reloj=setInterval(tick,250);tick();
   pedirLock();
@@ -334,10 +351,21 @@ function comprometer(t){
   cur.frag.push(p?{t,p:1}:{t});pendP=false;
   cur.palabras=(cur.palabras||0)+contar(t);cur.mod=Date.now();
   $('cuenta').textContent=nf(cur.palabras)+' palabras';
-  fantasma(t);marca(p,true);
+  if(cur.hilo)pintarHilo(true);else fantasma(t);marca(p,true);
   if(cur.frag.length===1)inicioVisible(false);
 }
 function fantasma(t){const g=document.createElement('div');g.className='fantasma';g.textContent=t;$('zona').appendChild(g);g.addEventListener('animationend',()=>g.remove())}
+// modo con hilo: las últimas frases quedan a la vista, más tenues mientras más viejas
+function pintarHilo(nueva){
+  const h=$('hilo');const n=cur&&cur.hilo||0;h.hidden=!n;if(!n){h.innerHTML='';return}
+  // junta frases completas (hasta . ? ! …), no pedazos entre comas
+  const fr=cur.frag,cierra=t=>/[.!?…]["»”’')\]]*$/.test(t);
+  let k=fr.length,vistas=0;const grupo=[];
+  while(k>0&&grupo.length<14){const f=fr[k-1];if(cierra(f.t)&&grupo.length&&++vistas>=n)break;grupo.unshift(f);k--;if(f.p&&grupo.length>1&&vistas>=n-1)break}
+  let ord=0;const niv=[];for(let x=grupo.length-1;x>=0;x--){niv[x]=ord;if(x>0&&cierra(grupo[x-1].t))ord++}
+  const op=[.85,.6,.4,.3];
+  h.innerHTML=grupo.map((f,x)=>`${f.p&&x>0?'<br><br>':''}<span style="opacity:${op[Math.min(niv[x],3)]}"${nueva&&x===grupo.length-1?' class="nueva"':''}>${esc(f.t)}</span>`).join(' ');
+}
 function marca(p,nueva){const h=$('huella');if(p)h.appendChild(document.createElement('i'));const d=document.createElement('span');if(nueva)d.className='nueva';h.appendChild(d);
   while(h.children.length>600)h.firstChild.remove()}
 function avisar(t){const a=$('aviso');a.textContent=t;a.classList.add('on');clearTimeout(avisoT);avisoT=setTimeout(()=>a.classList.remove('on'),1600)}
@@ -459,7 +487,7 @@ function sesion(s){
 async function conectar(){
   try{const c=localStorage.getItem(KEY);if(c){const x=JSON.parse(c);if(x&&Array.isArray(x.sesiones))S=x}}catch(e){}
   durSel=DUR.includes(S.dur)?S.dur:15;if(S.dur&&!DUR.includes(S.dur))$('min-otro').value=S.dur;
-  pintarChips();renderInicio();
+  pintarChips();pintarModos();renderInicio();
   for(const x of vivas())if(!x.cerrada&&x.pausa!=null)reanudar(x); // sesiones de la versión con pausa
   if(!NUBE){estado('Guardado en este dispositivo');return}
   estado('Conectando…');
