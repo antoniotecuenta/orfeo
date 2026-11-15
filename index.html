@@ -149,7 +149,7 @@ h1 i{color:var(--ember);font-style:normal}
       <p>Escribe sin parar. Cada cierta cantidad de palabras, lo que escribes desaparece, pero se guarda para que lo revises al final de la sesión. Escribe, no mires atrás.</p>
       <div class="modos" id="modos">
         <button type="button" class="modo" data-h="0"><b>A ciegas</b><span>Todo desaparece al instante.</span></button>
-        <button type="button" class="modo" data-h="3"><b>Con hilo</b><span>Ves tus últimas tres frases.</span></button>
+        <button type="button" class="modo" data-h="3"><b>Visión Limitada</b><span>Ves tus últimas líneas, pero solo escribes hacia adelante.</span></button>
       </div>
       <div class="chips" id="chips"></div>
       <div class="fila" style="justify-content:space-between;margin-bottom:16px">
@@ -188,7 +188,7 @@ h1 i{color:var(--ember);font-style:normal}
       <textarea id="txt" rows="2" autocomplete="off" spellcheck="true" autocapitalize="off" placeholder="Empieza por cualquier parte…" aria-label="Oración que estás escribiendo"></textarea>
     </div>
     <div style="flex:1"></div>
-    <div class="pista mono" id="pista">Punto, coma, ? o ! la hacen desaparecer · también cada 15 palabras · Enter: nuevo párrafo</div>
+    <div class="pista mono" id="pista"></div>
   </div>
 </section>
 
@@ -280,7 +280,7 @@ function renderInicio(){
   $('cuantas').textContent=vs.length?vs.length:'';
   if(!vs.length){$('lista').innerHTML='<p class="vacio">Aún no hay nada. Tu primera sesión aparecerá aquí, sellada hasta que termine su tiempo.</p>';return}
   $('lista').innerHTML=vs.map(s=>{
-    const n=(s.frag||[]).length,meta=`${s.hilo?'con hilo · ':''}${nf(s.palabras||0)} palabras · ${n} ${n===1?'frase':'frases'}`;
+    const n=(s.frag||[]).length,meta=`${s.hilo?'visión limitada · ':''}${nf(s.palabras||0)} palabras · ${n} ${n===1?'frase':'frases'}`;
     if(sellada(s))return `<button class="ses sellada" data-id="${s.id}"><div class="t">${CANDADO}${esc(tituloDe(s))}</div>
       <div class="m mono">${meta} · ${s.cerrada?`se abre en <b data-cd="${s.fin}">${fmtT(s.fin-Date.now())}</b>`:`en curso · quedan <b data-cd="${s.fin}">${fmtT(queda(s))}</b>`}</div></button>`;
     const prev=(s.frag||[]).slice(0,3).map(f=>f.t).join(' ');
@@ -334,18 +334,18 @@ function tick(){
 }
 const ABR=/(?:^|[\s(¿¡"«])(?:sr|sra|srta|sres|dr|dra|lic|ing|arq|ud|uds|vd|etc|pág|págs|núm|art|cap|vol|ej|aprox|av|st|mr|mrs)\.$/i, INI=/(?:^|\s)[A-ZÁÉÍÓÚÑ]\.$/;
 function cortar(v){ // guarda las oraciones completas y devuelve lo que sobra
-  const re=/(?:[.!?…]+|,)["»”’')\]]*(?=\s)/g;let ini=0,m;
+  const vl=cur&&cur.hilo,re=vl?/[.!?…]+["»”’')\]]*(?=\s)/g:/(?:[.!?…]+|,)["»”’')\]]*(?=\s)/g;let ini=0,m;
   while((m=re.exec(v))){
     const fin=m.index+m[0].length,cand=v.slice(ini,fin);
     if(m[0]==='.'&&(ABR.test(cand)||INI.test(cand)))continue;
     comprometer(cand);ini=fin;
   }
   const resto=v.slice(ini);
-  // 15 palabras seguidas sin puntuación: se van al terminar la palabra 15
-  if(/\s$/.test(resto)&&contar(resto)>=LIMITE){comprometer(resto);return ''}
+  // A ciegas: 15 palabras sin puntuación se van al terminar la palabra 15 · Visión Limitada: 40
+  if(/\s$/.test(resto)&&contar(resto)>=(vl?LIMITE_VL:LIMITE)){comprometer(resto);return ''}
   return resto;
 }
-const LIMITE=15;
+const LIMITE=15,LIMITE_VL=40;
 // el teclado no pone mayúsculas (autocapitalize=off); Orfeo las pone solo al empezar una oración
 let mayusHecha=false;
 function abreFrase(){if(!cur||!cur.frag.length||pendP)return true;return /[.!?…]["»”’')\]]*$/.test(cur.frag[cur.frag.length-1].t)}
@@ -354,7 +354,8 @@ function ajustarAlto(){txt.style.height='auto';txt.style.height=txt.scrollHeight
 function medir(){const vv=window.visualViewport;document.documentElement.style.setProperty('--alto',(vv?vv.height:innerHeight)+'px');if(vista==='escribir')window.scrollTo(0,0)}
 if(window.visualViewport){visualViewport.addEventListener('resize',medir);visualViewport.addEventListener('scroll',medir)}
 window.addEventListener('resize',medir);
-function inicioVisible(v){txt.placeholder=v?'Empieza por cualquier parte…':'';$('pista').hidden=!v}
+const PISTA=['Punto, coma, ? o ! la hacen desaparecer · también cada 15 palabras · Enter: nuevo párrafo','Solo hacia adelante · puedes borrar la oración en curso, nada más · Enter: nuevo párrafo'];
+function inicioVisible(v){txt.placeholder=v?'Empieza por cualquier parte…':'';$('pista').textContent=PISTA[cur&&cur.hilo?1:0];$('pista').hidden=!v}
 function comprometer(t){
   t=String(t).replace(/\s+/g,' ').trim();if(!t||!cur)return;
   const p=pendP&&cur.frag.length>0;
@@ -365,20 +366,26 @@ function comprometer(t){
   if(cur.frag.length===1)inicioVisible(false);
 }
 function fantasma(t){const g=document.createElement('div');g.className='fantasma';g.textContent=t;$('zona').appendChild(g);g.addEventListener('animationend',()=>g.remove())}
-// modo con hilo: las últimas frases quedan a la vista, más tenues mientras más viejas
+// Visión Limitada: ventana corrida con las últimas ~40 palabras; lo más viejo se desvanece por arriba
 function pintarHilo(nueva){
   const h=$('hilo');const n=cur&&cur.hilo||0;h.hidden=!n;if(!n){h.innerHTML='';return}
-  // junta frases completas (hasta . ? ! …), no pedazos entre comas
-  const fr=cur.frag,cierra=t=>/[.!?…]["»”’')\]]*$/.test(t);
-  let k=fr.length,vistas=0;const grupo=[];
-  while(k>0&&grupo.length<14){const f=fr[k-1];if(cierra(f.t)&&grupo.length&&++vistas>=n)break;grupo.unshift(f);k--;if(f.p&&grupo.length>1&&vistas>=n-1)break}
-  let ord=0;const niv=[];for(let x=grupo.length-1;x>=0;x--){niv[x]=ord;if(x>0&&cierra(grupo[x-1].t))ord++}
-  const op=[.85,.6,.4,.3],MAXP=32;
-  // ocupa siempre el mismo espacio: solo las últimas ~32 palabras
-  let total=0,desde=0;const txts=grupo.map(f=>f.t);
-  for(let x=grupo.length-1;x>=0;x--){const w=txts[x].split(/\s+/);if(total+w.length>MAXP){const k=MAXP-total;txts[x]=k>0?'…'+w.slice(-k).join(' '):'';desde=k>0?x:x+1;break}total+=w.length}
-  h.innerHTML='<div>'+grupo.map((f,x)=>x<desde||!txts[x]?'':`${f.p&&x>desde?'<br><br>':''}<span style="opacity:${op[Math.min(niv[x],3)]}"${nueva&&x===grupo.length-1?' class="nueva"':''}>${esc(txts[x])}</span>`).join(' ')+'</div>';
+  const fr=cur.frag,MAXP=40,partes=[];let total=0;
+  for(let k=fr.length-1;k>=0&&total<MAXP;k--){
+    let w=fr[k].t.split(/\s+/),corto=false;
+    if(total+w.length>MAXP){w=w.slice(-(MAXP-total));corto=true}
+    partes.unshift({t:(corto?'…':'')+w.join(' '),p:fr[k].p&&!corto,ini:total,len:w.length});total+=w.length;
+  }
+  h.innerHTML='<div>'+partes.map((f,x)=>{const edad=(f.ini+f.len/2)/MAXP,op=(.88-.55*Math.min(1,edad)).toFixed(2);
+    return `${f.p&&x>0?'<br><br>':''}<span style="opacity:${op}"${nueva&&x===partes.length-1?' class="nueva"':''}>${esc(f.t)}</span>`}).join(' ')+'</div>';
 }
+// Visión Limitada: como en Freewrite, el cursor siempre queda al final; solo se borra la oración en curso
+function alFinal(){if(!cur||!cur.hilo||document.activeElement!==txt)return;const n=txt.value.length;if(txt.selectionStart!==n||txt.selectionEnd!==n)txt.setSelectionRange(n,n)}
+const NAV=new Set(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown']);
+txt.addEventListener('keydown',e=>{if(!cur||!cur.hilo)return;
+  if(NAV.has(e.key)||((e.ctrlKey||e.metaKey)&&/^[az]$/i.test(e.key))){e.preventDefault();e.stopImmediatePropagation();alFinal()}},true);
+for(const ev of ['select','click','mouseup','touchend','focus','keyup'])txt.addEventListener(ev,()=>setTimeout(alFinal,0));
+document.addEventListener('selectionchange',alFinal);
+txt.addEventListener('dragstart',e=>{if(cur&&cur.hilo)e.preventDefault()});
 function marca(p,nueva){const h=$('huella');if(p)h.appendChild(document.createElement('i'));const d=document.createElement('span');if(nueva)d.className='nueva';h.appendChild(d);
   while(h.children.length>600)h.firstChild.remove()}
 function avisar(t){const a=$('aviso');a.textContent=t;a.classList.add('on');clearTimeout(avisoT);avisoT=setTimeout(()=>a.classList.remove('on'),1600)}
