@@ -330,7 +330,18 @@ function tick(){
   const r=cur.fin-Date.now();
   $('reloj').textContent=fmtT(r);$('reloj').classList.toggle('fin',r<60000);
   $('prog').style.width=Math.min(100,100*(1-r/(cur.dur*60000)))+'%';
-  if(r<=0)terminar();
+  if(r<=0&&!preguntando)finTiempo();
+}
+// al acabarse el reloj mientras escribes, puedes alargar la sesión
+let preguntando=false;
+async function finTiempo(){
+  preguntando=true;clearInterval(reloj);txt.blur();
+  const q=await mensaje(`<h3>Se acabó el tiempo</h3><p class="sub">${nf((cur.palabras||0)+contar(txt.value))} palabras. Si vas con impulso, sigue un rato más.</p>`,[['5','+5 min','pri'],['10','+10 min'],['15','+15 min'],['fin','Terminar']]);
+  preguntando=false;if(!cur)return;
+  if(!/^\d+$/.test(q))return terminar();
+  const m=+q;cur.fin=Date.now()+m*60000;cur.dur+=m;cur.mod=Date.now();guardar();
+  clearInterval(reloj);reloj=setInterval(tick,250);tick();
+  setTimeout(()=>{txt.focus();txt.setSelectionRange(txt.value.length,txt.value.length)},60);
 }
 const ABR=/(?:^|[\s(¿¡"«])(?:sr|sra|srta|sres|dr|dra|lic|ing|arq|ud|uds|vd|etc|pág|págs|núm|art|cap|vol|ej|aprox|av|st|mr|mrs)\.$/i, INI=/(?:^|\s)[A-ZÁÉÍÓÚÑ]\.$/;
 function cortar(v){ // guarda las oraciones completas y devuelve lo que sobra
@@ -341,11 +352,11 @@ function cortar(v){ // guarda las oraciones completas y devuelve lo que sobra
     comprometer(cand);ini=fin;
   }
   const resto=v.slice(ini);
-  // A ciegas: 20 palabras sin punto se van al terminar la palabra 20 · Visión Limitada: 25
-  if(/\s$/.test(resto)&&contar(resto)>=(vl?LIMITE_VL:LIMITE)){comprometer(resto);return ''}
+  // A ciegas: solo el punto corta · Visión Limitada: también a las 25 palabras sin punto
+  if(vl&&/\s$/.test(resto)&&contar(resto)>=LIMITE_VL){comprometer(resto);return ''}
   return resto;
 }
-const LIMITE=20,LIMITE_VL=25;
+const LIMITE_VL=25;
 // el teclado no pone mayúsculas (autocapitalize=off); Orfeo las pone solo al empezar una oración
 let mayusHecha=false;
 function abreFrase(){if(!cur||!cur.frag.length||pendP)return true;return /[.!?…]["»”’')\]]*$/.test(cur.frag[cur.frag.length-1].t)}
@@ -354,7 +365,7 @@ function ajustarAlto(){txt.style.height='auto';txt.style.height=txt.scrollHeight
 function medir(){const vv=window.visualViewport;document.documentElement.style.setProperty('--alto',(vv?vv.height:innerHeight)+'px');if(vista==='escribir')window.scrollTo(0,0)}
 if(window.visualViewport){visualViewport.addEventListener('resize',medir);visualViewport.addEventListener('scroll',medir)}
 window.addEventListener('resize',medir);
-const PISTA=['Punto, ? o ! la hacen desaparecer · también cada 20 palabras · Enter: nuevo párrafo','Solo hacia adelante · puedes borrar la oración en curso, nada más · Enter: nuevo párrafo'];
+const PISTA=['Solo el punto, ? o ! la hacen desaparecer · Enter: nuevo párrafo','Solo hacia adelante · puedes borrar la oración en curso, nada más · Enter: nuevo párrafo'];
 function inicioVisible(v){txt.placeholder=v?'Empieza por cualquier parte…':'';$('pista').textContent=PISTA[cur&&cur.hilo?1:0];$('pista').hidden=!v}
 function comprometer(t){
   t=String(t).replace(/\s+/g,' ').trim();if(!t||!cur)return;
