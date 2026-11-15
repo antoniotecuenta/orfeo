@@ -1,5 +1,5 @@
 // Orfeo: funciona sin internet. La página se pide primero a la red; si no hay, sale de la caché.
-const CACHE = 'orfeo-v11';
+const CACHE = 'orfeo-v12';
 const BASE = ['./', 'index.html', 'config.js', 'supabase.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(BASE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {

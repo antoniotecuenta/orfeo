@@ -148,7 +148,7 @@ h1 i{color:var(--ember);font-style:normal}
       <h2>Nueva sesión</h2>
       <p>Escribe sin parar. Cada cierta cantidad de palabras, lo que escribes desaparece, pero se guarda para que lo revises al final de la sesión. Escribe, no mires atrás.</p>
       <div class="modos" id="modos">
-        <button type="button" class="modo" data-h="0"><b>A ciegas</b><span>Todo desaparece al instante.</span></button>
+        <button type="button" class="modo" data-h="0"><b>A ciegas</b><span>Cada palabra desaparece al escribirla.</span></button>
         <button type="button" class="modo" data-h="3"><b>Visión Limitada</b><span>Ves tus últimas líneas, pero solo escribes hacia adelante.</span></button>
       </div>
       <div class="chips" id="chips"></div>
@@ -336,7 +336,7 @@ function tick(){
 let preguntando=false;
 async function finTiempo(){
   preguntando=true;clearInterval(reloj);txt.blur();
-  const q=await mensaje(`<h3>Se acabó el tiempo</h3><p class="sub">${nf((cur.palabras||0)+contar(txt.value))} palabras. Si vas con impulso, sigue un rato más.</p>`,[['5','+5 min','pri'],['10','+10 min'],['15','+15 min'],['fin','Terminar']]);
+  const q=await mensaje(`<h3>Se acabó el tiempo</h3><p class="sub">${nf((cur.palabras||0)+contar((cur.oculto||'')+' '+txt.value))} palabras. Si vas con impulso, sigue un rato más.</p>`,[['5','+5 min','pri'],['10','+10 min'],['15','+15 min'],['fin','Terminar']]);
   preguntando=false;if(!cur)return;
   if(!/^\d+$/.test(q))return terminar();
   const m=+q;cur.fin=Date.now()+m*60000;cur.dur+=m;cur.mod=Date.now();guardar();
@@ -345,6 +345,7 @@ async function finTiempo(){
 }
 const ABR=/(?:^|[\s(¿¡"«])(?:sr|sra|srta|sres|dr|dra|lic|ing|arq|ud|uds|vd|etc|pág|págs|núm|art|cap|vol|ej|aprox|av|st|mr|mrs)\.$/i, INI=/(?:^|\s)[A-ZÁÉÍÓÚÑ]\.$/;
 function cortar(v){ // guarda las oraciones completas y devuelve lo que sobra
+  if(cur&&!cur.hilo)return cortarCiego(v);
   const vl=cur&&cur.hilo,re=/[.!?…]+["»”’')\]]*(?=\s)/g;let ini=0,m;
   while((m=re.exec(v))){
     const fin=m.index+m[0].length,cand=v.slice(ini,fin);
@@ -352,28 +353,41 @@ function cortar(v){ // guarda las oraciones completas y devuelve lo que sobra
     comprometer(cand);ini=fin;
   }
   const resto=v.slice(ini);
-  // A ciegas: solo el punto corta · Visión Limitada: también a las 25 palabras sin punto
+  // A ciegas: solo el punto corta · Visión Limitada: también a las 30 palabras sin punto
   if(vl&&/\s$/.test(resto)&&contar(resto)>=LIMITE_VL){comprometer(resto);return ''}
   return resto;
 }
-const LIMITE_VL=25;
+const LIMITE_VL=30;
 // el teclado no pone mayúsculas (autocapitalize=off); Orfeo las pone solo al empezar una oración
 let mayusHecha=false;
-function abreFrase(){if(!cur||!cur.frag.length||pendP)return true;return /[.!?…]["»”’')\]]*$/.test(cur.frag[cur.frag.length-1].t)}
+function abreFrase(){if(cur&&cur.oculto)return false;if(!cur||!cur.frag.length||pendP)return true;return /[.!?…]["»”’')\]]*$/.test(cur.frag[cur.frag.length-1].t)}
 function ajustarAlto(){txt.style.height='auto';txt.style.height=txt.scrollHeight+'px';txt.scrollTop=txt.scrollHeight}
 // con el teclado abierto, la pantalla de escritura mide solo lo visible
 function medir(){const vv=window.visualViewport;document.documentElement.style.setProperty('--alto',(vv?vv.height:innerHeight)+'px');if(vista==='escribir')window.scrollTo(0,0)}
 if(window.visualViewport){visualViewport.addEventListener('resize',medir);visualViewport.addEventListener('scroll',medir)}
 window.addEventListener('resize',medir);
-const PISTA=['Solo el punto, ? o ! la hacen desaparecer · Enter: nuevo párrafo','Solo hacia adelante · puedes borrar la oración en curso, nada más · Enter: nuevo párrafo'];
+const PISTA=['Cada palabra desaparece al terminarla · Enter: nuevo párrafo','Solo hacia adelante · puedes borrar la oración en curso, nada más · Enter: nuevo párrafo'];
 function inicioVisible(v){txt.placeholder=v?'Empieza por cualquier parte…':'';$('pista').textContent=PISTA[cur&&cur.hilo?1:0];$('pista').hidden=!v}
-function comprometer(t){
+// A ciegas: cada palabra se va al terminarla; la oración se arma oculta y se guarda al cerrar con punto
+function cortarCiego(v){
+  const t=v.split(/(\s+)/).filter(x=>x!=='');let resto='';
+  if(t.length&&!/^\s+$/.test(t[t.length-1]))resto=t.pop();
+  for(const w of t){if(/^\s+$/.test(w))continue;
+    cur.oculto=(cur.oculto?cur.oculto+' ':'')+w;fantasma(w);
+    const fin=/[.!?…]+["»”’')\]]*$/.test(w)&&!(/\.$/.test(w)&&(ABR.test(cur.oculto)||INI.test(cur.oculto)));
+    if(fin)vaciar();
+  }
+  $('cuenta').textContent=nf((cur.palabras||0)+contar(cur.oculto||''))+' palabras';
+  return resto;
+}
+function vaciar(){if(cur&&cur.oculto){const t=cur.oculto;cur.oculto='';comprometer(t,true)}}
+function comprometer(t,callado){
   t=String(t).replace(/\s+/g,' ').trim();if(!t||!cur)return;
   const p=pendP&&cur.frag.length>0;
   cur.frag.push(p?{t,p:1}:{t});pendP=false;
   cur.palabras=(cur.palabras||0)+contar(t);cur.mod=Date.now();
   $('cuenta').textContent=nf(cur.palabras)+' palabras';
-  if(cur.hilo)pintarHilo(true);else fantasma(t);marca(p,true);
+  if(cur.hilo)pintarHilo(true);else if(!callado)fantasma(t);marca(p,true);
   if(cur.frag.length===1)inicioVisible(false);
 }
 function fantasma(t){const g=document.createElement('div');g.className='fantasma';g.textContent=t;$('zona').appendChild(g);g.addEventListener('animationend',()=>g.remove())}
@@ -403,7 +417,7 @@ function avisar(t){const a=$('aviso');a.textContent=t;a.classList.add('on');clea
 function procesar(){
   if(!cur)return;
   const antes=cur.frag.length;let v=txt.value;
-  if(v.includes('\n')){const ps=v.split('\n');for(let i=0;i<ps.length-1;i++){comprometer(cortar(ps[i]+' '));pendP=true}v=ps[ps.length-1]}
+  if(v.includes('\n')){const ps=v.split('\n');for(let i=0;i<ps.length-1;i++){comprometer(cortar(ps[i]+' '));vaciar();pendP=true}v=ps[ps.length-1]}
   let resto=cortar(v).replace(/^\s+/,'');
   if(!resto)mayusHecha=false;
   else if(!mayusHecha){mayusHecha=true;if(abreFrase())resto=resto.replace(/^([¿¡«"'(—\-\s]*)(\p{Ll})/u,(m,a,b)=>a+b.toUpperCase())}
@@ -416,7 +430,7 @@ txt.addEventListener('input',e=>{if(e.isComposing)return;procesar()});
 txt.addEventListener('compositionend',procesar);
 txt.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();
-    const antes=cur.frag.length;comprometer(cortar(txt.value+' '));txt.value='';cur.borrador='';mayusHecha=false;ajustarAlto();
+    const antes=cur.frag.length;comprometer(cortar(txt.value+' '));vaciar();txt.value='';cur.borrador='';mayusHecha=false;ajustarAlto();
     if(cur.frag.length)pendP=true;
     if(cur.frag.length!==antes)guardar();else guardarLocal();
   }else if(e.key==='Backspace'&&!txt.value){avisar('No mires atrás.')}
@@ -429,7 +443,7 @@ $('terminar').onclick=()=>salir();
 function salir(){ // el reloj sigue corriendo; puedes volver a entrar mientras quede tiempo
   if(!cur)return;
   const s=cur;
-  comprometer(cortar((txt.value||'')+' '));txt.value='';s.borrador='';
+  comprometer(cortar((txt.value||'')+' '));vaciar();txt.value='';s.borrador='';
   cur=null;clearInterval(reloj);soltarLock();guardar();
   mostrar('inicio');renderInicio();
   toast(`Puedes volver mientras corra el reloj · quedan ${fmtT(queda(s))}`);
@@ -437,7 +451,7 @@ function salir(){ // el reloj sigue corriendo; puedes volver a entrar mientras q
 function terminar(){
   if(!cur)return;
   const s=cur;
-  comprometer(cortar((txt.value||s.borrador||'')+' '));
+  comprometer(cortar((txt.value||s.borrador||'')+' '));vaciar();
   txt.value='';s.borrador='';s.cerrada=true;s.mod=Date.now();
   if(!s.frag.length){s.borrada=true}
   cur=null;clearInterval(reloj);soltarLock();guardar();
