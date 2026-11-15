@@ -53,7 +53,9 @@ h1 i{color:var(--ember);font-style:normal}
 .modo span{font-size:13px;line-height:1.35;display:block}
 .modo.on{border-color:var(--gold);background:var(--card2)}
 .modo.on b{color:var(--gold)}
-.hilo{font-family:var(--text);font-size:clamp(16px,3.7vw,20px);line-height:1.55;color:var(--dim);margin-bottom:16px}
+.hilo{flex:0 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;font-family:var(--text);font-size:clamp(16px,3.7vw,20px);line-height:1.55;color:var(--dim);margin-bottom:14px;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 1.6em);mask-image:linear-gradient(to bottom,transparent 0,#000 1.6em)}
+.hilo>div{flex:none}
+.hilo[hidden]{display:none}
 .hilo span{transition:opacity .5s}
 .hilo span.nueva{animation:entra .6s ease}
 @keyframes entra{from{opacity:0}}
@@ -82,7 +84,7 @@ h1 i{color:var(--ember);font-style:normal}
   background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:8px 14px;color:var(--dim);white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis}
 
 /* ---------- escritura ---------- */
-#v-escribir{position:fixed;inset:0;background:var(--ink)}
+#v-escribir{position:fixed;top:0;left:0;right:0;height:var(--alto,100dvh);background:var(--ink);overflow:hidden}
 #v-escribir.on{display:flex;flex-direction:column}
 .barra{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 18px 10px;max-width:760px;width:100%;margin:0 auto}
 .reloj{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--gold);letter-spacing:.04em}
@@ -91,20 +93,20 @@ h1 i{color:var(--ember);font-style:normal}
 .salir{color:var(--faint);padding:6px 0}
 .progreso{height:2px;background:var(--line);max-width:760px;width:calc(100% - 36px);margin:0 auto}
 .progreso div{height:100%;background:var(--gold);width:0;transition:width .3s linear}
-.lienzo{flex:1;display:flex;flex-direction:column;max-width:760px;width:100%;margin:0 auto;padding:0 18px;min-height:0}
-.huella{display:flex;flex-wrap:wrap;align-content:flex-end;gap:5px;min-height:24px;max-height:30vh;overflow:hidden;padding:22px 0 18px}
+.lienzo{flex:1;display:flex;flex-direction:column;overflow:hidden;max-width:760px;width:100%;margin:0 auto;padding:0 18px;min-height:0}
+.huella{flex:none;display:flex;flex-wrap:wrap;align-content:flex-end;gap:5px;height:42px;overflow:hidden;padding:14px 0 10px}
 .huella span{width:6px;height:6px;border-radius:50%;background:var(--faint);opacity:.55}
 .huella span.nueva{animation:caer .6s ease}
 .huella i{flex-basis:100%;height:4px}
 @keyframes caer{from{background:var(--gold);opacity:1;transform:scale(1.8)}to{}}
-.zona{position:relative}
+.zona{position:relative;flex:none}
 #txt,.fantasma{font-family:var(--text);font-size:clamp(21px,4.6vw,27px);line-height:1.5;padding:0;letter-spacing:.005em}
-#txt{width:100%;min-height:9em;background:transparent;border:0;outline:0;resize:none;caret-color:var(--ember);display:block}
+#txt{width:100%;min-height:3.2em;max-height:40vh;overflow-y:auto;background:transparent;border:0;outline:0;resize:none;caret-color:var(--ember);display:block}
 #txt::placeholder{color:var(--faint);font-style:italic}
 .fantasma{position:absolute;left:0;right:0;top:0;color:var(--paper);pointer-events:none;animation:irse 1.15s cubic-bezier(.3,.1,.3,1) forwards;white-space:pre-wrap;word-wrap:break-word}
 @keyframes irse{0%{opacity:.95;filter:blur(0);transform:translateY(0)}100%{opacity:0;filter:blur(7px);transform:translateY(-46px)}}
 @media (prefers-reduced-motion:reduce){.fantasma{animation:irse2 .5s forwards}@keyframes irse2{to{opacity:0}}.huella span.nueva{animation:none}}
-.aviso{font-family:var(--serif);font-style:italic;font-size:19px;color:var(--ember);min-height:28px;opacity:0;transition:opacity .4s}
+.aviso{flex:none;font-family:var(--serif);font-style:italic;font-size:19px;color:var(--ember);min-height:28px;opacity:0;transition:opacity .4s}
 .aviso.on{opacity:1}
 .pista{color:var(--faint);padding:10px 0 calc(16px + env(safe-area-inset-bottom))}
 
@@ -183,7 +185,7 @@ h1 i{color:var(--ember);font-style:normal}
     <div class="aviso" id="aviso">No mires atrás.</div>
     <div class="hilo" id="hilo" aria-live="off"></div>
     <div class="zona" id="zona">
-      <textarea id="txt" rows="5" autocomplete="off" spellcheck="true" autocapitalize="sentences" placeholder="Empieza por cualquier parte…" aria-label="Oración que estás escribiendo"></textarea>
+      <textarea id="txt" rows="2" autocomplete="off" spellcheck="true" autocapitalize="off" placeholder="Empieza por cualquier parte…" aria-label="Oración que estás escribiendo"></textarea>
     </div>
     <div style="flex:1"></div>
     <div class="pista mono" id="pista">Punto, coma, ? o ! la hacen desaparecer · también cada 15 palabras · Enter: nuevo párrafo</div>
@@ -316,7 +318,7 @@ function abrirEscritura(s){
   reanudar(s);guardar();
   if(Date.now()>=s.fin)return terminar();
   mostrar('escribir');
-  txt.value=s.borrador||'';inicioVisible(!(s.frag||[]).length);
+  txt.value=s.borrador||'';mayusHecha=!!txt.value;inicioVisible(!(s.frag||[]).length);medir();setTimeout(ajustarAlto,0);
   $('huella').innerHTML='';(s.frag||[]).forEach((f,i)=>marca(f.p&&i>0,false));pintarHilo(false);
   $('cuenta').textContent=nf(s.palabras||0)+' palabras';
   clearInterval(reloj);reloj=setInterval(tick,250);tick();
@@ -344,7 +346,15 @@ function cortar(v){ // guarda las oraciones completas y devuelve lo que sobra
   return resto;
 }
 const LIMITE=15;
-function inicioVisible(v){txt.placeholder=v?'Empieza por cualquier parte…':'';$('pista').style.visibility=v?'visible':'hidden'}
+// el teclado no pone mayúsculas (autocapitalize=off); Orfeo las pone solo al empezar una oración
+let mayusHecha=false;
+function abreFrase(){if(!cur||!cur.frag.length||pendP)return true;return /[.!?…]["»”’')\]]*$/.test(cur.frag[cur.frag.length-1].t)}
+function ajustarAlto(){txt.style.height='auto';txt.style.height=txt.scrollHeight+'px';txt.scrollTop=txt.scrollHeight}
+// con el teclado abierto, la pantalla de escritura mide solo lo visible
+function medir(){const vv=window.visualViewport;document.documentElement.style.setProperty('--alto',(vv?vv.height:innerHeight)+'px');if(vista==='escribir')window.scrollTo(0,0)}
+if(window.visualViewport){visualViewport.addEventListener('resize',medir);visualViewport.addEventListener('scroll',medir)}
+window.addEventListener('resize',medir);
+function inicioVisible(v){txt.placeholder=v?'Empieza por cualquier parte…':'';$('pista').hidden=!v}
 function comprometer(t){
   t=String(t).replace(/\s+/g,' ').trim();if(!t||!cur)return;
   const p=pendP&&cur.frag.length>0;
@@ -363,8 +373,11 @@ function pintarHilo(nueva){
   let k=fr.length,vistas=0;const grupo=[];
   while(k>0&&grupo.length<14){const f=fr[k-1];if(cierra(f.t)&&grupo.length&&++vistas>=n)break;grupo.unshift(f);k--;if(f.p&&grupo.length>1&&vistas>=n-1)break}
   let ord=0;const niv=[];for(let x=grupo.length-1;x>=0;x--){niv[x]=ord;if(x>0&&cierra(grupo[x-1].t))ord++}
-  const op=[.85,.6,.4,.3];
-  h.innerHTML=grupo.map((f,x)=>`${f.p&&x>0?'<br><br>':''}<span style="opacity:${op[Math.min(niv[x],3)]}"${nueva&&x===grupo.length-1?' class="nueva"':''}>${esc(f.t)}</span>`).join(' ');
+  const op=[.85,.6,.4,.3],MAXP=32;
+  // ocupa siempre el mismo espacio: solo las últimas ~32 palabras
+  let total=0,desde=0;const txts=grupo.map(f=>f.t);
+  for(let x=grupo.length-1;x>=0;x--){const w=txts[x].split(/\s+/);if(total+w.length>MAXP){const k=MAXP-total;txts[x]=k>0?'…'+w.slice(-k).join(' '):'';desde=k>0?x:x+1;break}total+=w.length}
+  h.innerHTML='<div>'+grupo.map((f,x)=>x<desde||!txts[x]?'':`${f.p&&x>desde?'<br><br>':''}<span style="opacity:${op[Math.min(niv[x],3)]}"${nueva&&x===grupo.length-1?' class="nueva"':''}>${esc(txts[x])}</span>`).join(' ')+'</div>';
 }
 function marca(p,nueva){const h=$('huella');if(p)h.appendChild(document.createElement('i'));const d=document.createElement('span');if(nueva)d.className='nueva';h.appendChild(d);
   while(h.children.length>600)h.firstChild.remove()}
@@ -373,8 +386,11 @@ function procesar(){
   if(!cur)return;
   const antes=cur.frag.length;let v=txt.value;
   if(v.includes('\n')){const ps=v.split('\n');for(let i=0;i<ps.length-1;i++){comprometer(cortar(ps[i]+' '));pendP=true}v=ps[ps.length-1]}
-  const resto=cortar(v).replace(/^\s+/,'');
+  let resto=cortar(v).replace(/^\s+/,'');
+  if(!resto)mayusHecha=false;
+  else if(!mayusHecha){mayusHecha=true;if(abreFrase())resto=resto.replace(/^([¿¡«"'(—\-\s]*)(\p{Ll})/u,(m,a,b)=>a+b.toUpperCase())}
   if(resto!==txt.value)txt.value=resto;
+  ajustarAlto();
   cur.borrador=resto;
   if(cur.frag.length!==antes)guardar();else guardarLocal();
 }
@@ -382,7 +398,7 @@ txt.addEventListener('input',e=>{if(e.isComposing)return;procesar()});
 txt.addEventListener('compositionend',procesar);
 txt.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();
-    const antes=cur.frag.length;comprometer(cortar(txt.value+' '));txt.value='';cur.borrador='';
+    const antes=cur.frag.length;comprometer(cortar(txt.value+' '));txt.value='';cur.borrador='';mayusHecha=false;ajustarAlto();
     if(cur.frag.length)pendP=true;
     if(cur.frag.length!==antes)guardar();else guardarLocal();
   }else if(e.key==='Backspace'&&!txt.value){avisar('No mires atrás.')}
