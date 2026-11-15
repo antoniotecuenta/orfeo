@@ -341,11 +341,11 @@ function cortar(v){ // guarda las oraciones completas y devuelve lo que sobra
     comprometer(cand);ini=fin;
   }
   const resto=v.slice(ini);
-  // A ciegas: 20 palabras sin punto se van al terminar la palabra 20 · Visión Limitada: 40
+  // A ciegas: 20 palabras sin punto se van al terminar la palabra 20 · Visión Limitada: 25
   if(/\s$/.test(resto)&&contar(resto)>=(vl?LIMITE_VL:LIMITE)){comprometer(resto);return ''}
   return resto;
 }
-const LIMITE=20,LIMITE_VL=40;
+const LIMITE=20,LIMITE_VL=25;
 // el teclado no pone mayúsculas (autocapitalize=off); Orfeo las pone solo al empezar una oración
 let mayusHecha=false;
 function abreFrase(){if(!cur||!cur.frag.length||pendP)return true;return /[.!?…]["»”’')\]]*$/.test(cur.frag[cur.frag.length-1].t)}
