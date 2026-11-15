@@ -334,18 +334,18 @@ function tick(){
 }
 const ABR=/(?:^|[\s(¿¡"«])(?:sr|sra|srta|sres|dr|dra|lic|ing|arq|ud|uds|vd|etc|pág|págs|núm|art|cap|vol|ej|aprox|av|st|mr|mrs)\.$/i, INI=/(?:^|\s)[A-ZÁÉÍÓÚÑ]\.$/;
 function cortar(v){ // guarda las oraciones completas y devuelve lo que sobra
-  const vl=cur&&cur.hilo,re=vl?/[.!?…]+["»”’')\]]*(?=\s)/g:/(?:[.!?…]+|,)["»”’')\]]*(?=\s)/g;let ini=0,m;
+  const vl=cur&&cur.hilo,re=/[.!?…]+["»”’')\]]*(?=\s)/g;let ini=0,m;
   while((m=re.exec(v))){
     const fin=m.index+m[0].length,cand=v.slice(ini,fin);
     if(m[0]==='.'&&(ABR.test(cand)||INI.test(cand)))continue;
     comprometer(cand);ini=fin;
   }
   const resto=v.slice(ini);
-  // A ciegas: 15 palabras sin puntuación se van al terminar la palabra 15 · Visión Limitada: 40
+  // A ciegas: 20 palabras sin punto se van al terminar la palabra 20 · Visión Limitada: 40
   if(/\s$/.test(resto)&&contar(resto)>=(vl?LIMITE_VL:LIMITE)){comprometer(resto);return ''}
   return resto;
 }
-const LIMITE=15,LIMITE_VL=40;
+const LIMITE=20,LIMITE_VL=40;
 // el teclado no pone mayúsculas (autocapitalize=off); Orfeo las pone solo al empezar una oración
 let mayusHecha=false;
 function abreFrase(){if(!cur||!cur.frag.length||pendP)return true;return /[.!?…]["»”’')\]]*$/.test(cur.frag[cur.frag.length-1].t)}
@@ -354,7 +354,7 @@ function ajustarAlto(){txt.style.height='auto';txt.style.height=txt.scrollHeight
 function medir(){const vv=window.visualViewport;document.documentElement.style.setProperty('--alto',(vv?vv.height:innerHeight)+'px');if(vista==='escribir')window.scrollTo(0,0)}
 if(window.visualViewport){visualViewport.addEventListener('resize',medir);visualViewport.addEventListener('scroll',medir)}
 window.addEventListener('resize',medir);
-const PISTA=['Punto, coma, ? o ! la hacen desaparecer · también cada 15 palabras · Enter: nuevo párrafo','Solo hacia adelante · puedes borrar la oración en curso, nada más · Enter: nuevo párrafo'];
+const PISTA=['Punto, ? o ! la hacen desaparecer · también cada 20 palabras · Enter: nuevo párrafo','Solo hacia adelante · puedes borrar la oración en curso, nada más · Enter: nuevo párrafo'];
 function inicioVisible(v){txt.placeholder=v?'Empieza por cualquier parte…':'';$('pista').textContent=PISTA[cur&&cur.hilo?1:0];$('pista').hidden=!v}
 function comprometer(t){
   t=String(t).replace(/\s+/g,' ').trim();if(!t||!cur)return;
